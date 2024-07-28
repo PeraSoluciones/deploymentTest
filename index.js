@@ -1,24 +1,26 @@
+require('dotenv').config();
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const Note = require('./models/note');
 
-let notes = [
-  {
-    id: 1,
-    content: 'HTML is easy',
-    important: true,
-  },
-  {
-    id: 2,
-    content: 'Browser can execute only JavaScript',
-    important: false,
-  },
-  {
-    id: 3,
-    content: 'GET and POST are the most important methods of HTTP protocol',
-    important: true,
-  },
-];
+// let notes = [
+//   {
+//     id: 1,
+//     content: 'HTML is easy',
+//     important: true,
+//   },
+//   {
+//     id: 2,
+//     content: 'Browser can execute only JavaScript',
+//     important: false,
+//   },
+//   {
+//     id: 3,
+//     content: 'GET and POST are the most important methods of HTTP protocol',
+//     important: true,
+//   },
+// ];
 
 const requestLogger = (request, response, next) => {
   console.log('Method:', request.method);
@@ -48,18 +50,15 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api/notes', (req, res) => {
-  res.json(notes);
+  Note.find({}).then((notes) => {
+    res.json(notes);
+  });
 });
 
 app.get('/api/notes/:id', (req, res) => {
-  const id = Number(req.params.id);
-  const note = notes.find((note) => note.id === id);
-  if (note) {
+  Note.findById(req.params.id).then((note) => {
     res.json(note);
-  } else {
-    res.statusMessage = 'Resouce not founded';
-    res.status(404).end();
-  }
+  });
 });
 
 app.post('/api/notes', (req, res) => {
@@ -67,14 +66,14 @@ app.post('/api/notes', (req, res) => {
   if (!body.content) {
     return res.status(404).json({ error: 'content missing' });
   }
-  const note = {
+  const note = new Note({
     content: body.content,
     important: Boolean(body.important) || false,
-    id: generatedId(),
-  };
-  notes = notes.concat(note);
+  });
 
-  res.json(note);
+  note.save().then((savedNote) => {
+    res.json(savedNote);
+  });
 });
 
 app.delete('/api/notes/:id', (req, res) => {
@@ -85,7 +84,7 @@ app.delete('/api/notes/:id', (req, res) => {
 
 app.use(unknownEndpoint);
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
